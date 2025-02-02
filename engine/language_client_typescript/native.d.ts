@@ -17,7 +17,6 @@ export interface BamlLogEvent {
 }
 export declare function invoke_runtime_cli(params: Array<string>): void
 export declare class BamlRuntime {
-  static getPromptString(): string
   renderPrompt2(functionName: string, args: { [key:string]: any }, tb?: TypeBuilder | undefined | null): any
   static fromDirectory(directory: string, envVars: Record<string, string>): BamlRuntime
   static fromFiles(rootPath: string, files: Record<string, string>, envVars: Record<string, string>): BamlRuntime
