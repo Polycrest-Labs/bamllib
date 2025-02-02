@@ -1,4 +1,3 @@
-
 use crate::errors::{from_anyhow_error, invalid_argument_error};
 use crate::parse_ts_types;
 use crate::types::client_registry::ClientRegistry;
@@ -7,15 +6,16 @@ use crate::types::function_results::FunctionResult;
 use crate::types::runtime_ctx_manager::RuntimeContextManager;
 use crate::types::trace_stats::TraceStats;
 use crate::types::type_builder::TypeBuilder;
+use baml_runtime::internal::prompt_renderer::PromptRenderer;
 use baml_runtime::on_log_event::LogEvent;
 use baml_runtime::runtime_interface::ExperimentalTracingInterface;
-use baml_runtime::BamlRuntime as CoreRuntime;
+use baml_runtime::{BamlRuntime as CoreRuntime, InternalRuntimeInterface};
 use baml_types::BamlValue;
 use napi::bindgen_prelude::ObjectFinalize;
 use napi::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunctionCallMode};
-use napi::{JsFunction, JsString};
 use napi::JsObject;
 use napi::{Env, JsUndefined};
+use napi::{JsFunction, JsString};
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -28,8 +28,6 @@ crate::lang_wrapper!(BamlRuntime,
     callback: Option<napi::Ref<()>> = None
 );
 
-
-
 #[napi(object)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LogEventMetadata {
@@ -37,7 +35,6 @@ pub struct LogEventMetadata {
     pub parent_id: Option<String>,
     pub root_event_id: String,
 }
-
 
 #[napi(object)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -53,35 +50,54 @@ pub struct BamlLogEvent {
 #[napi]
 impl BamlRuntime {
     #[napi(ts_return_type = "any")]
-        pub fn render_prompt2(
-            &self,
-            env: Env,
-            function_name: String,
-            #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
-            tb: Option<&TypeBuilder>
-        ) -> napi::Result<JsObject> {
-            let args = parse_ts_types::js_object_to_baml_value(env, args)?;
-            let ctx = self.create_context_manager();
+    pub fn render_prompt2(
+        &self,
+        env: Env,
+        function_name: String,
+        #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
+        tb: Option<&TypeBuilder>,
+    ) -> napi::Result<JsObject> {
+        let args = parse_ts_types::js_object_to_baml_value(env, args)?;
+        let ctx = self.create_context_manager();
 
-            if !args.is_map() {
-                return Err(invalid_argument_error(&format!(
-                    "Expected a map of arguments, got: {}",
-                    args.r#type()
-                )));
-            }
-            let args_map = args.as_map_owned().unwrap();
-    
-            let baml_runtime = self.inner.clone();
-            let ctx_mng = ctx.inner.clone();
-            let tb = tb.map(|tb| tb.inner.clone());
-            let zzz = baml_runtime.render_prompt(&function_name, &ctx_mng, &args_map, tb.as_ref(), None);
-            
-            let mut result = env.create_object()?;
-            result.set_named_property("prompt", zzz.expect("msg"))?;
-            Ok(result)
+        if !args.is_map() {
+            return Err(invalid_argument_error(&format!(
+                "Expected a map of arguments, got: {}",
+                args.r#type()
+            )));
         }
+        let args_map = args.as_map_owned().unwrap();
 
+        let baml_runtime = self.inner.clone();
+        let ctx_mng = ctx.inner.clone();
+        let tb = tb.map(|tb| tb.inner.clone());
+        let zzz =
+            baml_runtime.render_prompt(&function_name, &ctx_mng, &args_map, tb.as_ref(), None);
 
+        let mut result = env.create_object()?;
+        result.set_named_property("prompt", zzz.expect("msg"))?;
+        Ok(result)
+    }
+    #[napi]
+    pub fn get_result(&self, env: Env, function_name: String, compeletion: String) -> String {
+        let ctx = self.create_context_manager();
+        let baml_runtime = self.inner.clone();
+        let ctx2 = ctx.inner.create_ctx_with_default();
+
+        let func2 = baml_runtime
+            .internal()
+            .get_function(&function_name, &ctx2)
+            .expect("msg");
+        let ir = baml_runtime.internal().ir();
+        let renderer = PromptRenderer::from_function(&func2, ir, &ctx2);
+
+        let result = renderer
+            .expect("msg")
+            .parse(ir, compeletion.as_str(), false);
+        let rr = result.expect("msg");
+        let s = rr.serialize_final();
+        serde_json::to_string(&s).expect("Failed to serialize result")
+    }
 
     #[napi(ts_return_type = "BamlRuntime")]
     pub fn from_directory(

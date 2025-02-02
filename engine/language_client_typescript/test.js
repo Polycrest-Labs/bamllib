@@ -1,11 +1,10 @@
+const { json } = require('stream/consumers');
 const native = require('./native.js');
 const { BamlRuntime } = native;
 
 
 console.log(BamlRuntime);
 
-console.log(BamlRuntime.getPromptString());
-BamlRuntime.getPromptString();
 const fileMap = {
   
     "../c:\\projects\\foo-code\\baml_src\\clients.baml": "client<llm> GPT4 {\r\n  provider openai\r\n  options {\r\n    model \"gpt-4\"\r\n    api_key env.OPENAI_API_KEY\r\n  }\r\n}\r\n\r\nclient<llm> Claude {\r\n  provider anthropic\r\n  options {\r\n    model \"claude-3-opus-20240229\"\r\n    api_key env.ANTHROPIC_API_KEY\r\n  }\r\n}\r\n\r\n\r\nclient<llm> FastAnthropic {\r\n  provider anthropic\r\n  options {\r\n    model \"claude-3-haiku-20240307\"\r\n    api_key env.ANTHROPIC_API_KEY\r\n  }\r\n}\r\n\r\nclient<llm> FastOpenAI {\r\n  provider openai\r\n  options {\r\n    model \"gpt-3.5-turbo\"\r\n    api_key env.OPENAI_API_KEY\r\n  }\r\n}\r\n\r\n\r\nclient<llm> Fast {\r\n  provider round-robin\r\n  options {\r\n    // This will alternate between the two clients\r\n    strategy [FastAnthropic, FastOpenAI]\r\n  }\r\n}\r\nclient<llm> Kluster {\r\n  provider openai-generic\r\n  options {\r\n    model \"deepseek-ai/DeepSeek-R1\"\r\n    api_key \"783007c0-72cd-4caf-8e1b-618212f902ea\"\r\n    base_url \"https://api.kluster.ai/v1\"\r\n  }\r\n}\r\nclient<llm> Openai {\r\n  provider fallback\r\n  options {\r\n    // This will try the clients in order until one succeeds\r\n    strategy [GPT4, FastOpenAI]\r\n  }\r\n}",
@@ -21,3 +20,26 @@ const c = b.renderPrompt2('ExtractResume', {
     "resume": "yes!!!!!!"
   })
 console.log(c);
+
+const temp = {
+  "name": "Vaibhav Gupta",
+  "email": "f@lj.com",
+  "experience": [
+    "Founder at BoundaryML",
+    "CV Engineer at Google",
+    "CV Engineer at Microsoft"
+  ],
+  "skills": [
+    "Rust",
+    "C++"
+  ]
+}
+
+
+const t = b.getResult('ExtractResume', JSON.stringify(temp).replace(/\,/g, ''));
+
+const az = JSON.parse(t);
+
+console.log(t);
+console.log(az);
+
