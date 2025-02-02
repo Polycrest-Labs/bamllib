@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { BamlRuntime, BamlAudio, ClientRegistry, FunctionResultStream, FunctionResult, BamlImage, RuntimeContextManager, BamlSpan, TraceStats, TypeBuilder, EnumBuilder, ClassBuilder, EnumValueBuilder, ClassPropertyBuilder, FieldType, invoke_runtime_cli } = nativeBinding
+const { BamlRuntime, BamlAudio, ClientRegistry, FunctionResultStream, FunctionResult, BamlImage, RuntimeContextManager, BamlSpan, TraceStats, TypeBuilder, EnumBuilder, ClassBuilder, EnumValueBuilder, ClassPropertyBuilder, FieldType, invoke_runtime_cli, doesitwork } = nativeBinding
 
 module.exports.BamlRuntime = BamlRuntime
 module.exports.BamlAudio = BamlAudio
@@ -328,3 +328,4 @@ module.exports.EnumValueBuilder = EnumValueBuilder
 module.exports.ClassPropertyBuilder = ClassPropertyBuilder
 module.exports.FieldType = FieldType
 module.exports.invoke_runtime_cli = invoke_runtime_cli
+module.exports.doesitwork = doesitwork

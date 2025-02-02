@@ -1,3 +1,4 @@
+
 use crate::errors::{from_anyhow_error, invalid_argument_error};
 use crate::parse_ts_types;
 use crate::types::client_registry::ClientRegistry;
@@ -12,7 +13,7 @@ use baml_runtime::BamlRuntime as CoreRuntime;
 use baml_types::BamlValue;
 use napi::bindgen_prelude::ObjectFinalize;
 use napi::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunctionCallMode};
-use napi::JsFunction;
+use napi::{JsFunction, JsString};
 use napi::JsObject;
 use napi::{Env, JsUndefined};
 use napi_derive::napi;
@@ -27,6 +28,8 @@ crate::lang_wrapper!(BamlRuntime,
     callback: Option<napi::Ref<()>> = None
 );
 
+
+
 #[napi(object)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LogEventMetadata {
@@ -34,6 +37,7 @@ pub struct LogEventMetadata {
     pub parent_id: Option<String>,
     pub root_event_id: String,
 }
+
 
 #[napi(object)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -48,6 +52,37 @@ pub struct BamlLogEvent {
 
 #[napi]
 impl BamlRuntime {
+    #[napi(ts_return_type = "any")]
+        pub fn render_prompt2(
+            &self,
+            env: Env,
+            function_name: String,
+            #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
+            tb: Option<&TypeBuilder>
+        ) -> napi::Result<JsObject> {
+            let args = parse_ts_types::js_object_to_baml_value(env, args)?;
+            let ctx = self.create_context_manager();
+
+            if !args.is_map() {
+                return Err(invalid_argument_error(&format!(
+                    "Expected a map of arguments, got: {}",
+                    args.r#type()
+                )));
+            }
+            let args_map = args.as_map_owned().unwrap();
+    
+            let baml_runtime = self.inner.clone();
+            let ctx_mng = ctx.inner.clone();
+            let tb = tb.map(|tb| tb.inner.clone());
+            let zzz = baml_runtime.render_prompt(&function_name, &ctx_mng, &args_map, tb.as_ref(), None);
+            
+            let mut result = env.create_object()?;
+            result.set_named_property("prompt", zzz.expect("msg"))?;
+            Ok(result)
+        }
+
+
+
     #[napi(ts_return_type = "BamlRuntime")]
     pub fn from_directory(
         directory: String,
@@ -95,7 +130,7 @@ impl BamlRuntime {
         &self,
         env: Env,
         function_name: String,
-        #[napi(ts_arg_type = "{ [string]: any }")] args: JsObject,
+        #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
         ctx: &RuntimeContextManager,
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
@@ -134,7 +169,7 @@ impl BamlRuntime {
         &self,
         env: Env,
         function_name: String,
-        #[napi(ts_arg_type = "{ [string]: any }")] args: JsObject,
+        #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
         ctx: &RuntimeContextManager,
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
@@ -168,7 +203,7 @@ impl BamlRuntime {
         &self,
         env: Env,
         function_name: String,
-        #[napi(ts_arg_type = "{ [string]: any }")] args: JsObject,
+        #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
         #[napi(ts_arg_type = "((err: any, param: FunctionResult) => void) | undefined")] cb: Option<
             JsFunction,
         >,
@@ -212,7 +247,7 @@ impl BamlRuntime {
         &self,
         env: Env,
         function_name: String,
-        #[napi(ts_arg_type = "{ [string]: any }")] args: JsObject,
+        #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
         #[napi(ts_arg_type = "((err: any, param: FunctionResult) => void) | undefined")] cb: Option<
             JsFunction,
         >,

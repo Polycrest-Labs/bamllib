@@ -16,6 +16,7 @@ export interface BamlLogEvent {
   startTime: string
 }
 export declare function invoke_runtime_cli(params: Array<string>): void
+export declare function doesitwork(): string
 export declare class BamlRuntime {
   static getPromptString(): string
   renderPrompt2(functionName: string, args: { [key:string]: any }, tb?: TypeBuilder | undefined | null): any

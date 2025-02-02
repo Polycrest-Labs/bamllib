@@ -4,7 +4,7 @@ name = "baml-typescript-ffi"
 version = "0.0.1"
 
 [lib]
-name = "baml"
+name = "baml_typescript_ffi"
 crate-type = ["cdylib"]
 
 [lints.rust]

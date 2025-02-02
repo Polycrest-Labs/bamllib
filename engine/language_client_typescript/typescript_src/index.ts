@@ -3,7 +3,6 @@ export {
   FunctionResult,
   FunctionResultStream,
   BamlImage as Image,
-  ClientBuilder,
   BamlAudio as Audio,
   invoke_runtime_cli,
   ClientRegistry,
