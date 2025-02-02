@@ -9,13 +9,13 @@ on:
         required: false
         default: false
   # need to run this periodically on the default branch to populate the build cache
-  schedule:
+  #schedule:
     # daily at 2am PST
     #- cron: 0 10 * * *
-  push:
-    tags:
-      - "test-release/*.*"
-      - "*.*"
+  # push:
+  #   tags:
+  #     - "test-release/*.*"
+  #     - "*.*"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
