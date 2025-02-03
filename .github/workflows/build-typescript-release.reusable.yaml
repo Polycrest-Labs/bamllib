@@ -3,7 +3,7 @@ name: BAML Release - Build Typescript
 on:
   workflow_call: {}
   push:
-    branches: [renderutil]
+    branches: [renderutilzz]
 
 concurrency:
   # suffix is important to prevent a concurrency deadlock with the calling workflow

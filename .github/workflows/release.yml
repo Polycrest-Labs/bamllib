@@ -122,9 +122,9 @@ jobs:
           pattern: bindings-*
           path: engine/language_client_typescript/artifacts
 
-      - name: create npm dirs
-        run: pnpm napi create-npm-dirs
-        working-directory: engine/language_client_typescript
+      # - name: create npm dirs
+      #   run: pnpm napi create-npm-dirs
+      #   working-directory: engine/language_client_typescript
 
       - name: Move artifacts
         run: pnpm artifacts
