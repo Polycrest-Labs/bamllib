@@ -35,16 +35,8 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "napi": {
-    "binaryName": "libbaml",
-    "targets": [
-      "aarch64-apple-darwin",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-linux-musl",
-      "x86_64-apple-darwin",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-linux-musl"
-    ]
+    "name": "baml",
+    "binaryName": "libbaml"
   },
   "engines": {
     "node": ">= 10"
@@ -63,7 +55,7 @@
     "format": "run-p format:biome format:rs format:toml",
     "format:biome": "biome --write .",
     "format:rs": "cargo fmt",
-    "prepublishOnly": "napi prepublish --no-gh-release",
+    "prepublishOnly": "napi prepublish -t npm",
     "test": "echo no tests implemented",
     "version": "napi version"
   },
@@ -83,5 +75,10 @@
   "author": "",
   "dependencies": {
     "@scarf/scarf": "^1.3.0"
+  },
+  "optionalDependencies": {
+    "@polycrestlabs/baml-win32-x64-msvc": "0.74.1",
+    "@polycrestlabs/baml-darwin-x64": "0.74.1",
+    "@polycrestlabs/baml-linux-x64-gnu": "0.74.1"
   }
 }
