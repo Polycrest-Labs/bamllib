@@ -15,9 +15,17 @@ export interface BamlLogEvent {
   parsedOutput?: string
   startTime: string
 }
+export interface PromptParts {
+  system: string
+  chat: Array<Chat>
+}
+export interface Chat {
+  message: string
+  role: string
+}
 export declare function invoke_runtime_cli(params: Array<string>): void
 export declare class BamlRuntime {
-  renderPrompt2(functionName: string, args: { [key:string]: any }, tb?: TypeBuilder | undefined | null): any
+  renderPrompt2(functionName: string, args: { [key:string]: any }, tb?: TypeBuilder | undefined | null): PromptParts
   getResult(functionName: string, compeletion: string): string
   static fromDirectory(directory: string, envVars: Record<string, string>): BamlRuntime
   static fromFiles(rootPath: string, files: Record<string, string>, envVars: Record<string, string>): BamlRuntime

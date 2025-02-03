@@ -8,11 +8,11 @@ pub(crate) mod internal;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
 pub mod client_registry;
-pub mod test_constraints;
 pub mod errors;
 pub mod request;
 mod runtime;
 pub mod runtime_interface;
+pub mod test_constraints;
 pub mod tracing;
 pub mod type_builder;
 mod types;
@@ -30,10 +30,12 @@ use baml_types::BamlMap;
 use baml_types::BamlValue;
 use baml_types::Constraint;
 use cfg_if::cfg_if;
+#[cfg(not(target_arch = "wasm32"))]
+pub use cli::RuntimeCliDefaults;
 use client_registry::ClientRegistry;
 use indexmap::IndexMap;
 use internal::llm_client::orchestrator::OrchestrationScope;
-use internal::llm_client::primitive::{LLMPrimitiveProvider};
+use internal::llm_client::primitive::LLMPrimitiveProvider;
 use internal::llm_client::traits::WithClient;
 use internal::prompt_renderer::PromptRenderer;
 use internal_baml_core::configuration::CloudProject;
@@ -46,13 +48,11 @@ use internal_baml_jinja::RenderContext_Client;
 use internal_baml_jinja::RenderedChatMessage;
 use on_log_event::LogEventCallbackSync;
 use runtime::InternalBamlRuntime;
-use std::sync::OnceLock;
-#[cfg(not(target_arch = "wasm32"))]
-pub use cli::RuntimeCliDefaults;
 pub use runtime_context::BamlSrcReader;
 use runtime_interface::ExperimentalTracingInterface;
 use runtime_interface::RuntimeConstructor;
 use runtime_interface::RuntimeInterface;
+use std::sync::OnceLock;
 use tracing::{BamlTracer, TracingSpan};
 use type_builder::TypeBuilder;
 pub use types::*;
@@ -73,8 +73,8 @@ pub use internal_baml_core::internal_baml_diagnostics;
 pub use internal_baml_core::internal_baml_diagnostics::Diagnostics as DiagnosticsError;
 pub use internal_baml_core::ir::{scope_diagnostics, FieldType, IRHelper, TypeValue};
 
-use crate::test_constraints::{evaluate_test_constraints, TestConstraintsResult};
 use crate::internal::llm_client::LLMResponse;
+use crate::test_constraints::{evaluate_test_constraints, TestConstraintsResult};
 use internal_llm_client::AllowedRoleMetadata;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -93,7 +93,6 @@ impl BamlRuntime {
         &self.env_vars
     }
 
-    
     #[cfg(not(target_arch = "wasm32"))]
     fn get_tokio_singleton() -> Result<Arc<tokio::runtime::Runtime>> {
         match TOKIO_SINGLETON.get_or_init(|| tokio::runtime::Runtime::new().map(Arc::new)) {
@@ -274,8 +273,14 @@ impl BamlRuntime {
             } else {
                 match val {
                     Some(Ok(value)) => {
-                        let value_with_constraints = value.0.map_meta(|(_,constraints,_)| constraints.clone());
-                        evaluate_test_constraints(&params, &value_with_constraints, complete_resp, constraints)
+                        let value_with_constraints =
+                            value.0.map_meta(|(_, constraints, _)| constraints.clone());
+                        evaluate_test_constraints(
+                            &params,
+                            &value_with_constraints,
+                            complete_resp,
+                            constraints,
+                        )
                     }
                     _ => TestConstraintsResult::empty(),
                 }
@@ -318,19 +323,18 @@ impl BamlRuntime {
         params: &BamlMap<String, BamlValue>,
         tb: Option<&TypeBuilder>,
         cb: Option<&ClientRegistry>,
-    ) -> Result<String> {
+    ) -> Result<RenderedPrompt> {
         let context = ctx.create_ctx(tb, cb)?;
         let function = self.inner.get_function(function_name, &context)?;
         let ir = self.inner.ir();
         let renderer = PromptRenderer::from_function(&function, &ir, &context)?;
-        
-        
+
         let qqq = RenderContext_Client {
             allowed_roles: vec!["fd".to_owned()],
             default_role: "fd".to_owned(),
             name: "fd".to_owned(),
             provider: "dsf".to_owned(),
-        };   
+        };
 
         let baml_args = ir.check_function_params(
             &function,
@@ -341,37 +345,7 @@ impl BamlRuntime {
             },
         )?;
 
-        let r = renderer.render_prompt(&ir, &context, &baml_args, &qqq);
-        let prompt = r.expect("msg");
-        //let mut s = String::new();
-        match prompt {
-            RenderedPrompt::Chat(_) => { 
-                Err(anyhow::anyhow!("Expected completion, got chat"))
-                // for message in messages {
-                //     message.parts.iter().for_each(|part| {
-                //         match part {
-                //             ChatMessagePart::Text(text) => {
-                //                 println!("Textzzz: {}", text);
-                //                 s.push_str(text);
-                //             }
-                //             ChatMessagePart::Media(prompt) => {
-                //                 println!("Prompt:");
-                //             }
-                //             ChatMessagePart::WithMeta(completion, hm) => {
-                //                 println!("Completionzz: {}", completion.as_text().expect("msg") );
-                //             }
-                //         }
-                //     });
-                // }
-              
-            },
-            RenderedPrompt::Completion(completion) => {
-                println!("Completion {}", completion);
-                Ok(completion)
-            }
-            
-        }
-        
+        renderer.render_prompt(&ir, &context, &baml_args, &qqq)
     }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn call_function_sync(

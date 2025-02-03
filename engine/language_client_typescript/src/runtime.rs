@@ -9,7 +9,9 @@ use crate::types::type_builder::TypeBuilder;
 use baml_runtime::internal::prompt_renderer::PromptRenderer;
 use baml_runtime::on_log_event::LogEvent;
 use baml_runtime::runtime_interface::ExperimentalTracingInterface;
-use baml_runtime::{BamlRuntime as CoreRuntime, InternalRuntimeInterface};
+use baml_runtime::{
+    BamlRuntime as CoreRuntime, ChatMessagePart, InternalRuntimeInterface, RenderedPrompt,
+};
 use baml_types::BamlValue;
 use napi::bindgen_prelude::ObjectFinalize;
 use napi::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunctionCallMode};
@@ -46,17 +48,29 @@ pub struct BamlLogEvent {
     pub parsed_output: Option<String>,
     pub start_time: String,
 }
+#[napi(object)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PromptParts {
+    pub system: String,
+    pub chat: Vec<Chat>,
+}
+#[napi(object)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Chat {
+    pub message: String,
+    pub role: String,
+}
 
 #[napi]
 impl BamlRuntime {
-    #[napi(ts_return_type = "any")]
+    #[napi()]
     pub fn render_prompt2(
         &self,
         env: Env,
         function_name: String,
         #[napi(ts_arg_type = "{ [key:string]: any }")] args: JsObject,
         tb: Option<&TypeBuilder>,
-    ) -> napi::Result<JsObject> {
+    ) -> napi::Result<PromptParts> {
         let args = parse_ts_types::js_object_to_baml_value(env, args)?;
         let ctx = self.create_context_manager();
 
@@ -71,12 +85,48 @@ impl BamlRuntime {
         let baml_runtime = self.inner.clone();
         let ctx_mng = ctx.inner.clone();
         let tb = tb.map(|tb| tb.inner.clone());
-        let zzz =
-            baml_runtime.render_prompt(&function_name, &ctx_mng, &args_map, tb.as_ref(), None);
+        let rendered = baml_runtime
+            .render_prompt(&function_name, &ctx_mng, &args_map, tb.as_ref(), None)
+            .map_err(from_anyhow_error)?;
 
-        let mut result = env.create_object()?;
-        result.set_named_property("prompt", zzz.expect("msg"))?;
-        Ok(result)
+        // Convert RenderedPrompt to PromptParts
+        match rendered {
+            RenderedPrompt::Chat(messages) => {
+                let mut system_parts = Vec::new();
+                let mut chat_parts = Vec::new();
+
+                for message in messages {
+                    let content = message
+                        .parts
+                        .iter()
+                        .map(|p| match p {
+                            ChatMessagePart::Text(text) => text.clone(),
+                            ChatMessagePart::Media(media) => format!("[Media: {}]", "media"),
+                            ChatMessagePart::WithMeta(part, _) => part.to_string(),
+                        })
+                        .collect::<Vec<_>>()
+                        .join("");
+
+                    if message.role == "system" {
+                        system_parts.push(content);
+                    } else {
+                        chat_parts.push(Chat {
+                            role: message.role,
+                            message: content,
+                        });
+                    }
+                }
+
+                Ok(PromptParts {
+                    system: system_parts.join("\n"),
+                    chat: chat_parts,
+                })
+            }
+            RenderedPrompt::Completion(text) => Ok(PromptParts {
+                system: text,
+                chat: Vec::new(),
+            }),
+        }
     }
     #[napi]
     pub fn get_result(&self, env: Env, function_name: String, compeletion: String) -> String {
