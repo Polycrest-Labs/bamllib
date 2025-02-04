@@ -1,6 +1,6 @@
 {
   "name": "@polycrestlabs/baml-win32-x64-msvc",
-  "version": "0.74.2",
+  "version": "0.74.3",
   "os": [
     "win32"
   ],

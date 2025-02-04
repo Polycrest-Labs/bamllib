@@ -1,6 +1,6 @@
 {
   "name": "@polycrestlabs/baml",
-  "version": "0.74.2",
+  "version": "0.74.3",
   "description": "BAML typescript bindings (package.json)",
   "repository": {
     "type": "git",
@@ -77,8 +77,8 @@
     "@scarf/scarf": "^1.3.0"
   },
   "optionalDependencies": {
-    "@polycrestlabs/baml-win32-x64-msvc": "0.74.2",
-    "@polycrestlabs/baml-darwin-x64": "0.74.2",
-    "@polycrestlabs/baml-linux-x64-gnu": "0.74.2"
+    "@polycrestlabs/baml-win32-x64-msvc": "0.74.3",
+    "@polycrestlabs/baml-darwin-x64": "0.74.3",
+    "@polycrestlabs/baml-linux-x64-gnu": "0.74.3"
   }
 }

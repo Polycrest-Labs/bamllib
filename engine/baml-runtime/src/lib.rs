@@ -330,10 +330,10 @@ impl BamlRuntime {
         let renderer = PromptRenderer::from_function(&function, &ir, &context)?;
 
         let qqq = RenderContext_Client {
-            allowed_roles: vec!["fd".to_owned()],
-            default_role: "fd".to_owned(),
-            name: "fd".to_owned(),
-            provider: "dsf".to_owned(),
+            allowed_roles: vec!["system".to_owned(), "user".to_owned()],
+            default_role: "system".to_owned(),
+            name: "azzapp".to_owned(),
+            provider: "deeprovider".to_owned(),
         };
 
         let baml_args = ir.check_function_params(
