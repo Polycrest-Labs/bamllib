@@ -142,15 +142,15 @@ impl BamlRuntime {
         let func2 = baml_runtime
             .internal()
             .get_function(&function_name, &ctx2)
-            .expect("msg");
+            .map_err(|e| Error::from_reason(format!("Failed to get function: {}", e)))?;
         let ir = baml_runtime.internal().ir();
-        let renderer = PromptRenderer::from_function(&func2, ir, &ctx2);
+        let renderer = PromptRenderer::from_function(&func2, ir, &ctx2)
+            .map_err(|e| Error::from_reason(format!("Failed to create renderer: {}", e)))?;
 
         let result = renderer
-            .expect("msg")
-            .parse(ir, compeletion.as_str(), false);
-        let rr = result.expect("msg");
-        let s = rr.serialize_final();
+            .parse(ir, compeletion.as_str(), false)
+            .map_err(|e| Error::from_reason(format!("Failed to parse: {}", e)))?;
+        let s = result.serialize_final();
         serde_json::to_string(&s)
             .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
     }
