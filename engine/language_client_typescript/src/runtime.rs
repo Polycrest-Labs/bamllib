@@ -15,8 +15,8 @@ use baml_runtime::{
 use baml_types::BamlValue;
 use napi::bindgen_prelude::ObjectFinalize;
 use napi::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunctionCallMode};
-use napi::JsObject;
 use napi::{Env, JsUndefined};
+use napi::{Error, JsObject};
 use napi::{JsFunction, JsString};
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
@@ -129,7 +129,12 @@ impl BamlRuntime {
         }
     }
     #[napi]
-    pub fn get_result(&self, env: Env, function_name: String, compeletion: String) -> String {
+    pub fn get_result(
+        &self,
+        env: Env,
+        function_name: String,
+        compeletion: String,
+    ) -> Result<String, Error> {
         let ctx = self.create_context_manager();
         let baml_runtime = self.inner.clone();
         let ctx2 = ctx.inner.create_ctx_with_default();
@@ -146,7 +151,8 @@ impl BamlRuntime {
             .parse(ir, compeletion.as_str(), false);
         let rr = result.expect("msg");
         let s = rr.serialize_final();
-        serde_json::to_string(&s).expect("Failed to serialize result")
+        serde_json::to_string(&s)
+            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
     }
 
     #[napi(ts_return_type = "BamlRuntime")]
